@@ -11,6 +11,9 @@ class NoConnection(StandardError): pass
 
 
 class TincConn(object):
+    """
+    Handles a connection to tincd via unix socket.
+    """
     buf_size = 16
     timeout = 0.6 # seconds
 
@@ -29,10 +32,18 @@ class TincConn(object):
         self._parse_pid_file()
 
     def _parse_pid_file(self):
+        """
+        Parse cookie from tincd's pid file.
+        """
         with open(self.pid_file, "r") as pid_file:
             self.cookie = pid_file.read().split()[1]
 
     def connect(self):
+        """
+        Connect to tincd's unix socket.
+
+        :return: Data reveived from the socket after connecting
+        """
         if not self.connection:
             self.connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.connection.connect(self.tinc_socket)
@@ -41,11 +52,21 @@ class TincConn(object):
             return ans
 
     def disconnect(self):
+        """
+        Disconnect from unix socket.
+        """
         if self.connection:
             self.connection.close()
             self.connection = None
 
     def reconnect(self, n=3):
+        """
+        Tries to reconnect to the socket n times with exponentially increasing
+        sleep time after each try. There should be at least one try.
+        """
+        if n < 1:
+            raise ValueError('At least one try required.')
+
         c = 0
         while c < n:
             try:
@@ -64,6 +85,10 @@ class TincConn(object):
             time.sleep(self._sleep_time(c))
 
     def communicate(self, request):
+        """
+        Send a request to the socket and return its answer.
+        Before sending the data the request gets validated.
+        """
         try:
             self._send_request(request)
         except (IOError, NoConnection) as e:
@@ -75,6 +100,11 @@ class TincConn(object):
         return self._get_answer()
 
     def authenticate(self):
+        """
+        Send the parsed cookie and return the answer.
+
+        :return: Data reveived from the socket after the authentication
+        """
         # this is actually ID ^cookie TINC_CTL_VERSION_CURRENT
         auth = "0 ^%s 0\n" % self.cookie
         ans = self.communicate(auth)
