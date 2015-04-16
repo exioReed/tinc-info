@@ -14,8 +14,6 @@ class TincConn(object):
     buf_size = 16
     timeout = 0.6 # seconds
 
-    reconn_tries = 3
-
     available_requests = {"REQ_DUMP_NODES": "18 3\n",
                           "REQ_DUMP_EDGES": "18 4\n",
                           "REQ_DUMP_SUBNETS": "18 5\n",
@@ -47,9 +45,9 @@ class TincConn(object):
             self.connection.close()
             self.connection = None
 
-    def reconnect(self):
+    def reconnect(self, n=3):
         c = 0
-        while c < self.reconn_tries:
+        while c < n:
             try:
                 self.disconnect()
                 self.connect()
