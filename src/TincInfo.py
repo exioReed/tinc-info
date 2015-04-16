@@ -1,32 +1,77 @@
+import sys
+
 from TincConn import TincConn
 
 
 class TincNode(object):
+    """
+    Represents a node of a tinc VPN.
+    """
     def __init__(self):
+        """
+        Initialize TincNode object
+        """
         self.name = None
+        """Node name"""
         self.network = []
+        """List of networks owned by the node"""
         self.peer_info = {}
+        """Dictionary with further information about that node. See PeerInfo"""
 
     def __repr__(self):
         return "%s %s" % (self.name, self.network)
 
     def add_network(self, network):
+        """
+        Adds a network to the list of networks if it's not in the list already.
+
+        :param network: Network to add
+        """
         if network not in self.network:
             self.network.append(network)
 
 
-class PeerInfo(dict): pass
+class PeerInfo(dict):
+    """
+    Represents information about a node of a tinc VPN.
+
+    node, id, host, port, cipher, digest, maclength, compression, options,
+    status_int, nexthop, via, distance, pmtu, minmtu, maxmtu, last_state_change
+    """
+    pass
 
 
-class TincEdge(dict): pass
+class TincEdge(dict):
+    """
+    Represents an edge of a tinc VPN.
+
+    from, to, host, local_host, local_port, options, weight, avg_rtt
+
+    Depending on the protocol version of tincd avg_rtt may not be defined.
+    """
+    pass
 
 
-class TincConnection(dict): pass
+class TincConnection(dict):
+    """
+    Represents a meta connection of a tinc VPN.
+
+    node, host, port, options, socket, status_int
+    """
+    pass
 
 
 class TincInfo(object):
-
+    """
+    TincInfo retrieves information from tincd.
+    """
     def __init__(self, netname, rundir='/var/run'):
+        """
+        Initialize TincInfo object
+
+        :param netname: Netname of tinc VPN for which information should be retrieved (required)
+        :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
+        """
         self.netname = netname
         self.rundir = rundir
         self.tinc_conn = TincConn(self._pid_file(), self._socket(), True)
@@ -44,6 +89,14 @@ class TincInfo(object):
 
     # parse
     def parse_networks(self):
+        """
+        Parse all known subnets in the VPN and store them in the network list
+        of the corresponding node.
+
+        If parse_nodes() was executed before peer_info is also present.
+
+        :return: A dictionary of nodes
+        """
         answer = self.tinc_conn.communicate("REQ_DUMP_SUBNETS")
 
         for i in [l.split(" ")[2:] for l in answer.splitlines() if len(l.split(" ")[2:])]:
@@ -54,6 +107,16 @@ class TincInfo(object):
         return self.nodes
 
     def parse_edges(self):
+        """
+        Parse all known connections in the VPN and store the information
+        in a list of edges. An edge holds the following information:
+
+        from, to, host, local_host, local_port, options, weight, avg_rtt
+
+        Depending on the protocol version of tincd avg_rtt may not be defined.
+
+        :return: A list of edges
+        """
         answer = self.tinc_conn.communicate("REQ_DUMP_EDGES")
         # from, to, host, port, local_host, local_port, &options, &weight
         purpose = ["from", "to", "host", "_a", "port", "local_host",
@@ -68,6 +131,14 @@ class TincInfo(object):
         return self.edges
 
     def parse_connections(self):
+        """
+        Parse all meta connections and store information in a list.
+        A connection holds the following information:
+
+        node, host, port, options, socket, status_int
+
+        :return: A list of meta connections
+        """
         answer = self.tinc_conn.communicate("REQ_DUMP_CONNECTIONS")
         # connections = []
         # node, host, port, &options, &socket, &status_int
@@ -80,6 +151,20 @@ class TincInfo(object):
         return self.connections
 
     def parse_nodes(self):
+        """
+        Parse information about all known nodes in the VPN.
+        The peer_info of a node holds the following information:
+
+        node, id, host, port, cipher, digest, maclength, compression, options,
+        status_int, nexthop, via, distance, pmtu, minmtu, maxmtu,
+        last_state_change
+
+        If parse_networks() was excecuted before the networks owned by a node
+        are also present.
+
+        :return: A dictionary of nodes where nodes[nodename].peer_info contains
+        the mentioned information.
+        """
         answer = self.tinc_conn.communicate("REQ_DUMP_NODES")
         # node, id, host, port, &cipher, &digest, &maclength, &compression, &options,
         # &status_int, nexthop, via, &distance, &pmtu, &minmtu, &maxmtu, &last_state_change)
@@ -94,6 +179,9 @@ class TincInfo(object):
         return self.nodes
 
     def parse_all(self):
+        """
+        Parse connections, edges, networks and nodes one after another.
+        """
         self.parse_connections()
         self.parse_edges()
         self.parse_networks()
@@ -116,12 +204,35 @@ class TincInfo(object):
 
     # info
     def get_max_weight(self):
+        """
+        Compute the maximal weight of all parsed edges.
+
+        :return: The maximal weight
+        """
         max_weight = 0
         for edge in self.edges:
             if int(edge['weight']) > max_weight:
                 max_weight = int(edge['weight'])
         return max_weight
 
+    def get_min_weight(self):
+        """
+        Compute the minimal weight of all parsed edges.
+
+        :return: The minimal weight
+        """
+        min_weight = sys.maxint
+        for edge in self.edges:
+            if int(edge['weight']) < min_weight:
+                min_weight = int(edge['weight'])
+        return min_weight
+
     def edge_count(self, node):
+        """
+        Compute the count of edges for a given node name.
+
+        :param node: The node name
+        :return: Edge count
+        """
         # return len(filter(lambda i : i['from'] == node, self.edges))
         return len([e for e in self.edges if e['from'] == node])
