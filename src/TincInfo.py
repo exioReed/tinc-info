@@ -1,3 +1,5 @@
+import sys
+
 from TincConn import TincConn
 
 
@@ -121,6 +123,13 @@ class TincInfo(object):
             if int(edge['weight']) > max_weight:
                 max_weight = int(edge['weight'])
         return max_weight
+
+    def get_min_weight(self):
+        min_weight = sys.maxint
+        for edge in self.edges:
+            if int(edge['weight']) < min_weight:
+                min_weight = int(edge['weight'])
+        return min_weight
 
     def edge_count(self, node):
         # return len(filter(lambda i : i['from'] == node, self.edges))
