@@ -192,11 +192,6 @@ class TincInfo(object):
 
     @staticmethod
     def meta_parse(_tmp, purpose, t_obj):
-        # print(_tmp, t_obj)
-        # TODO: doesn't make sense
-        if len(_tmp) < len(purpose):
-            return t_obj
-
         for k, v in zip(purpose, _tmp):
             t_obj[k] = v
 
