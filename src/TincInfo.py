@@ -3,6 +3,42 @@ import sys
 from TincConn import TincConn
 
 
+class ConvertDatatypeDict(dict):
+    """
+    A dict that converts values for certain keys.
+
+    The keys for which the corresponding value should be converted can be
+    specified via the attributes self.decs and self.hexs.
+
+    self.decs: A list of keys for which the values are interpreted as
+     *decimal* integer literals.
+    self.hexs: A list of keys for which the values are interpreted as
+     *hexadecimal* integer literals.
+
+    The value -1 represents an unknown/invalid value for every key in self.decs
+    and self.hexs.
+    """
+    decs = []
+    hexs = []
+
+    def __setitem__(self, key, item):
+        if key in self.decs:
+            try:
+                setattr(self, key, int(item))
+            except ValueError:
+                setattr(self, key, -1)
+        elif key in self.hexs:
+            try:
+                setattr(self, key, int(item, 16))
+            except ValueError:
+                setattr(self, key, -1)
+        else:
+            setattr(self, key, item)
+
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
+
 class TincNode(object):
     """
     Represents a node of a tinc VPN.
@@ -31,17 +67,20 @@ class TincNode(object):
             self.network.append(network)
 
 
-class PeerInfo(dict):
+class PeerInfo(ConvertDatatypeDict):
     """
     Represents information about a node of a tinc VPN.
 
     node, id, host, port, cipher, digest, maclength, compression, options,
     status_int, nexthop, via, distance, pmtu, minmtu, maxmtu, last_state_change
     """
-    pass
+    decs = ['port', 'distance', 'pmtu', 'minmtu', 'maxmtu',
+            'last_state_change']
+    hexs = ['cipher', 'digest', 'maclength', 'compression', 'options',
+            'status_int']
 
 
-class TincEdge(dict):
+class TincEdge(ConvertDatatypeDict):
     """
     Represents an edge of a tinc VPN.
 
@@ -49,16 +88,18 @@ class TincEdge(dict):
 
     Depending on the protocol version of tincd avg_rtt may not be defined.
     """
-    pass
+    decs = ['port', 'local_port', 'weight', 'avg_rtt']
+    hexs = ['options']
 
 
-class TincConnection(dict):
+class TincConnection(ConvertDatatypeDict):
     """
     Represents a meta connection of a tinc VPN.
 
     node, host, port, options, socket, status_int
     """
-    pass
+    decs = ['port']
+    hexs = ['options', 'status_int']
 
 
 class TincInfo(object):
