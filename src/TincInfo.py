@@ -129,16 +129,20 @@ class TincInfo(object):
         return "%s/tinc.%s.socket" % (self.rundir, self.netname)
 
     # parse
-    def parse_networks(self):
+    def parse_networks(self, data=None):
         """
         Parse all known subnets in the VPN and store them in the network list
         of the corresponding node.
 
         If parse_nodes() was executed before peer_info is also present.
 
+        :param data: Data to parse. TincInfo tries to retrieve data from tincd
+        if no data is given.
+
         :return: A dictionary of nodes
         """
-        answer = self.tinc_conn.communicate("REQ_DUMP_SUBNETS")
+        if not data:
+            data = self.tinc_conn.communicate("REQ_DUMP_SUBNETS")
 
         for i in [l.split(" ")[2:] for l in answer.splitlines() if len(l.split(" ")[2:])]:
             net, node_name = i
@@ -147,7 +151,7 @@ class TincInfo(object):
             node.add_network(net)
         return self.nodes
 
-    def parse_edges(self):
+    def parse_edges(self, data=None):
         """
         Parse all known connections in the VPN and store the information
         in a list of edges. An edge holds the following information:
@@ -156,9 +160,15 @@ class TincInfo(object):
 
         Depending on the protocol version of tincd avg_rtt may not be defined.
 
+        :param data: Data to parse. TincInfo tries to retrieve data from tincd
+        if no data is given.
+
         :return: A list of edges
         """
-        answer = self.tinc_conn.communicate("REQ_DUMP_EDGES")
+
+        if not data:
+            data = self.tinc_conn.communicate("REQ_DUMP_EDGES")
+
         # from, to, host, port, local_host, local_port, &options, &weight
         purpose = ["from", "to", "host", "_a", "port", "local_host",
                    "_b", "local_port", "options", "weight", "avg_rtt"]
@@ -167,31 +177,36 @@ class TincInfo(object):
         #     edges.append(self.meta_parse(i.split(" ")[2:], purpose, TincEdge()))
 
         self.edges = map(lambda i : self.meta_parse(i.split(" ")[2:], purpose, TincEdge()),
-                    [z for z in answer.splitlines() if len(z.split(" ")[2:])])
+                    [z for z in data.splitlines() if len(z.split(" ")[2:])])
 
         return self.edges
 
-    def parse_connections(self):
+    def parse_connections(self, data=None):
         """
         Parse all meta connections and store information in a list.
         A connection holds the following information:
 
         node, host, port, options, socket, status_int
 
+        :param data: Data to parse. TincInfo tries to retrieve data from tincd
+        if no data is given.
+
         :return: A list of meta connections
         """
-        answer = self.tinc_conn.communicate("REQ_DUMP_CONNECTIONS")
+        if not data:
+            data = self.tinc_conn.communicate("REQ_DUMP_CONNECTIONS")
+
         # connections = []
         # node, host, port, &options, &socket, &status_int
         purpose = ["node", "host", "_a", "port",
                    "options", "socket", "status_int"]
 
-        for i in [z for z in answer.splitlines() if len(z.split(" ")[2:])]:
+        for i in [z for z in data.splitlines() if len(z.split(" ")[2:])]:
             self.connections.append(self.meta_parse(i.split(" ")[2:], purpose, TincConnection()))
 
         return self.connections
 
-    def parse_nodes(self):
+    def parse_nodes(self, data=None):
         """
         Parse information about all known nodes in the VPN.
         The peer_info of a node holds the following information:
@@ -203,16 +218,21 @@ class TincInfo(object):
         If parse_networks() was excecuted before the networks owned by a node
         are also present.
 
+        :param data: Data to parse. TincInfo tries to retrieve data from tincd
+        if no data is given.
+
         :return: A dictionary of nodes where nodes[nodename].peer_info contains
         the mentioned information.
         """
-        answer = self.tinc_conn.communicate("REQ_DUMP_NODES")
+        if not data:
+            data = self.tinc_conn.communicate("REQ_DUMP_NODES")
+
         # node, id, host, port, &cipher, &digest, &maclength, &compression, &options,
         # &status_int, nexthop, via, &distance, &pmtu, &minmtu, &maxmtu, &last_state_change)
         purpose = ['node', 'id', 'host', '_a', 'port', 'cipher', 'digest', 'maclength',
                    'compression', 'options', 'status_int', 'nexthop', 'via', 'distance',
                    'pmtu', 'minmtu', 'maxmtu', 'last_state_change']
-        for i in [z for z in answer.splitlines() if len(z.split(" ")[2:])]:
+        for i in [z for z in data.splitlines() if len(z.split(" ")[2:])]:
             x = self.meta_parse(i.split(" ")[2:], purpose, PeerInfo())
             n = self.nodes.setdefault(x['node'], TincNode())
             n.peer_info = x
