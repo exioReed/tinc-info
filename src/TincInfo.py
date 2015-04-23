@@ -144,8 +144,13 @@ class TincInfo(object):
         if not data:
             data = self.tinc_conn.communicate("REQ_DUMP_SUBNETS")
 
-        for i in [l.split(" ")[2:] for l in answer.splitlines() if len(l.split(" ")[2:])]:
-            net, node_name = i
+        for line in [l for l in data.splitlines() if len(l.split(" ")[2:])]:
+            i = line.split(" ")[2:]
+            try:
+                net, node_name = i
+            except ValueError as ve:
+                print('Cannot parse line [{}]'.format(line))
+                raise ve
             node = self.nodes.setdefault(node_name, TincNode())
             node.name = node_name
             node.add_network(net)
