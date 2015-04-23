@@ -106,21 +106,36 @@ class TincInfo(object):
     """
     TincInfo retrieves information from tincd.
     """
-    def __init__(self, netname, rundir='/var/run'):
+    def __init__(self, netname=None, rundir='/var/run'):
         """
         Initialize TincInfo object
 
-        :param netname: Netname of tinc VPN for which information should be retrieved (required)
+        Establish connection to tincd's control socket if netname is specified.
+
+        :param netname: Netname of tinc VPN for which information should be retrieved (default: None)
         :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
         """
         self.netname = netname
         self.rundir = rundir
-        self.tinc_conn = TincConn(self._pid_file(), self._socket(), True)
-        self.tinc_conn.connect()
-        self.tinc_conn.authenticate()
+        self.tinc_conn = None
+        if self.netname:
+            self.set_net(self.netname)
         self.connections = []
         self.nodes = {}
         self.edges = []
+
+    def set_net(self, netname):
+        """
+        Set the netname of tinc VPN for which information should be retrieved.
+
+        This also establishes connnection to tincd's control socket.
+
+        :param netname: Netname of tinc VPN
+        """
+        self.netname = netname
+        self.tinc_conn = TincConn(self._pid_file(), self._socket(), True)
+        self.tinc_conn.connect()
+        self.tinc_conn.authenticate()
 
     def _pid_file(self):
         return "%s/tinc.%s.pid" % (self.rundir, self.netname)
