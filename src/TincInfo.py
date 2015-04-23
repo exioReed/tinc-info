@@ -229,7 +229,8 @@ class TincInfo(object):
         self.parse_nodes()
 
     def __del__(self):
-        self.tinc_conn.disconnect()
+        if self.tinc_conn:
+            del self.tinc_conn
 
     @staticmethod
     def meta_parse(_tmp, purpose, t_obj):

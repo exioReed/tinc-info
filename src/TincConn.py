@@ -142,3 +142,6 @@ class TincConn(object):
 
     def _sleep_time(self, count):
         return int(math.ceil(math.exp(count)))
+
+    def __del__(self):
+        self.disconnect()
