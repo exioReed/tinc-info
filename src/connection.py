@@ -23,6 +23,14 @@ class Control(object):
                           "REQ_DUMP_CONNECTIONS": "18 6\n"}
 
     def __init__(self, netname, rundir='/var/run', reconn=False):
+        """
+        Initialize Control object
+
+
+        :param netname: Netname of a tinc VPN
+        :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
+        :param reconn: If True, Control tries to reconnect to unix socket (default: False)
+        """
         self.netname = netname
         self.rundir = rundir
         self.pid_file = self._pid_file()

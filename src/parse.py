@@ -102,16 +102,11 @@ class TincConnection(ConvertDatatypeDict):
 
 class TincInfo(object):
     """
-    TincInfo retrieves information from tincd.
+    TincInfo parses data retrieved from tincd's control socket.
     """
     def __init__(self):
         """
         Initialize TincInfo object
-
-        Establish connection to tincd's control socket if netname is specified.
-
-        :param netname: Netname of tinc VPN for which information should be retrieved (default: None)
-        :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
         """
         self.connections = []
         self.nodes = {}
@@ -125,8 +120,7 @@ class TincInfo(object):
 
         If parse_nodes() was executed before peer_info is also present.
 
-        :param data: Data to parse. TincInfo tries to retrieve data from tincd
-        if no data is given.
+        :param data: Data to parse. If not specified ValueError will be raised.
 
         :return: A dictionary of nodes
         """
@@ -154,8 +148,7 @@ class TincInfo(object):
 
         Depending on the protocol version of tincd avg_rtt may not be defined.
 
-        :param data: Data to parse. TincInfo tries to retrieve data from tincd
-        if no data is given.
+        :param data: Data to parse. If not specified ValueError will be raised.
 
         :return: A list of edges
         """
@@ -182,8 +175,7 @@ class TincInfo(object):
 
         node, host, port, options, socket, status_int
 
-        :param data: Data to parse. TincInfo tries to retrieve data from tincd
-        if no data is given.
+        :param data: Data to parse. If not specified ValueError will be raised.
 
         :return: A list of meta connections
         """
@@ -212,8 +204,7 @@ class TincInfo(object):
         If parse_networks() was excecuted before the networks owned by a node
         are also present.
 
-        :param data: Data to parse. TincInfo tries to retrieve data from tincd
-        if no data is given.
+        :param data: Data to parse. If not specified ValueError will be raised.
 
         :return: A dictionary of nodes where nodes[nodename].peer_info contains
         the mentioned information.
