@@ -1,7 +1,5 @@
 import sys
 
-from connection import Control
-
 
 class ConvertDatatypeDict(dict):
     """
@@ -106,7 +104,7 @@ class TincInfo(object):
     """
     TincInfo retrieves information from tincd.
     """
-    def __init__(self, netname=None, rundir='/var/run'):
+    def __init__(self):
         """
         Initialize TincInfo object
 
@@ -115,33 +113,9 @@ class TincInfo(object):
         :param netname: Netname of tinc VPN for which information should be retrieved (default: None)
         :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
         """
-        self.netname = netname
-        self.rundir = rundir
-        self.tinc_conn = None
-        if self.netname:
-            self.set_net(self.netname)
         self.connections = []
         self.nodes = {}
         self.edges = []
-
-    def set_net(self, netname):
-        """
-        Set the netname of tinc VPN for which information should be retrieved.
-
-        This also establishes connnection to tincd's control socket.
-
-        :param netname: Netname of tinc VPN
-        """
-        self.netname = netname
-        self.tinc_conn = TincConn(self._pid_file(), self._socket(), True)
-        self.tinc_conn.connect()
-        self.tinc_conn.authenticate()
-
-    def _pid_file(self):
-        return "%s/tinc.%s.pid" % (self.rundir, self.netname)
-
-    def _socket(self):
-        return "%s/tinc.%s.socket" % (self.rundir, self.netname)
 
     # parse
     def parse_networks(self, data=None):
@@ -157,7 +131,7 @@ class TincInfo(object):
         :return: A dictionary of nodes
         """
         if not data:
-            data = self.tinc_conn.communicate("REQ_DUMP_SUBNETS")
+            raise ValueError('No data to parse networks given.')
 
         for line in [l for l in data.splitlines() if len(l.split(" ")[2:])]:
             i = line.split(" ")[2:]
@@ -187,7 +161,7 @@ class TincInfo(object):
         """
 
         if not data:
-            data = self.tinc_conn.communicate("REQ_DUMP_EDGES")
+            raise ValueError('No data to parse edges given.')
 
         # from, to, host, port, local_host, local_port, &options, &weight
         purpose = ["from", "to", "host", "_a", "port", "local_host",
@@ -214,7 +188,7 @@ class TincInfo(object):
         :return: A list of meta connections
         """
         if not data:
-            data = self.tinc_conn.communicate("REQ_DUMP_CONNECTIONS")
+            raise ValueError('No data to parse connections given.')
 
         # connections = []
         # node, host, port, &options, &socket, &status_int
@@ -245,7 +219,7 @@ class TincInfo(object):
         the mentioned information.
         """
         if not data:
-            data = self.tinc_conn.communicate("REQ_DUMP_NODES")
+            raise ValueError('No data to parse nodes given.')
 
         # node, id, host, port, &cipher, &digest, &maclength, &compression, &options,
         # &status_int, nexthop, via, &distance, &pmtu, &minmtu, &maxmtu, &last_state_change)
@@ -258,19 +232,6 @@ class TincInfo(object):
             n.peer_info = x
 
         return self.nodes
-
-    def parse_all(self):
-        """
-        Parse connections, edges, networks and nodes one after another.
-        """
-        self.parse_connections()
-        self.parse_edges()
-        self.parse_networks()
-        self.parse_nodes()
-
-    def __del__(self):
-        if self.tinc_conn:
-            del self.tinc_conn
 
     @staticmethod
     def meta_parse(_tmp, purpose, t_obj):
