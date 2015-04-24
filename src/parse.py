@@ -1,6 +1,6 @@
 import sys
 
-from TincConn import TincConn
+from connection import TincConn
 
 
 class ConvertDatatypeDict(dict):
