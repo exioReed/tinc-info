@@ -22,14 +22,24 @@ class Control(object):
                           "REQ_DUMP_SUBNETS": "18 5\n",
                           "REQ_DUMP_CONNECTIONS": "18 6\n"}
 
-    def __init__(self, pid_file, tinc_socket, reconn = False):
-        self.pid_file = pid_file
-        self.tinc_socket = tinc_socket
+    def __init__(self, netname, rundir='/var/run', reconn=False):
+        self.netname = netname
+        self.rundir = rundir
+        self.pid_file = self._pid_file()
+        self.tinc_socket = self._socket()
 
         self.reconn = reconn
         self.connection = None
         self.cookie = None
         self._parse_pid_file()
+
+    def _pid_file(self):
+        return "{rundir}/tinc.{netname}.pid".format(rundir=self.rundir,
+                                                    netname=self.netname)
+
+    def _socket(self):
+        return "{rundir}/tinc.{netname}.socket".format(rundir=self.rundir,
+                                                       netname=self.netname)
 
     def _parse_pid_file(self):
         """
