@@ -1,1 +1,1 @@
-__all__ = ['TincConn', 'TincInfo']
+__all__ = ['connection', 'parse']

@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 setup(
-    name = "TincInfo",
+    name = "tinctools",
     version = "0.2",
     packages = ['tinctools'],
     package_dir = {'tinctools': './src/'}
