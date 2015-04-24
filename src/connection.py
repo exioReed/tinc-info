@@ -77,7 +77,7 @@ class Control(object):
                 # errno 2: No such file or directory
                 # errno 13: Permission denied
                 # errno 32: Broken pipe
-                if c == self.reconn_tries - 1:
+                if c == n - 1:
                     raise e
             else:
                 break
