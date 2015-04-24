@@ -10,7 +10,7 @@ class InvalidRequest(StandardError): pass
 class NoConnection(StandardError): pass
 
 
-class TincConn(object):
+class Control(object):
     """
     Handles a connection to tincd via unix socket.
     """
