@@ -17,13 +17,13 @@ $ python setup.py
 ```
 
 ## Example
-Lets assume that $NETNAME is the netname of your tinc VPN.
+Lets assume that netname is the netname of your tinc VPN.
 
 ```python
 from tinctools import connection, parse
 
 # fetch
-tincctl = connection.Control('$NETNAME')
+tincctl = connection.Control('netname')
 tincctl.connect()
 tincctl.authenticate()
 meta_conn_data = tincctl.communicate(connection.Request.DUMP_CONNECTIONS)
