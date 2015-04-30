@@ -4,32 +4,51 @@ import socket
 import time
 
 
-class InvalidRequest(StandardError): pass
-
-
 class NoConnection(StandardError): pass
 
 
-class TincConn(object):
+class Request(object):
+    DUMP_NODES = "18 3\n"
+    DUMP_EDGES = "18 4\n"
+    DUMP_SUBNETS = "18 5\n"
+    DUMP_CONNECTIONS = "18 6\n"
+    PURGE = "18 8\n"
+
+    AVAIL_REQ = [DUMP_NODES, DUMP_EDGES, DUMP_SUBNETS, DUMP_CONNECTIONS, PURGE]
+
+
+class Control(object):
     """
     Handles a connection to tincd via unix socket.
     """
     buf_size = 16
     timeout = 0.6 # seconds
 
-    available_requests = {"REQ_DUMP_NODES": "18 3\n",
-                          "REQ_DUMP_EDGES": "18 4\n",
-                          "REQ_DUMP_SUBNETS": "18 5\n",
-                          "REQ_DUMP_CONNECTIONS": "18 6\n"}
+    def __init__(self, netname, rundir='/var/run', reconn=False):
+        """
+        Initialize Control object
 
-    def __init__(self, pid_file, tinc_socket, reconn = False):
-        self.pid_file = pid_file
-        self.tinc_socket = tinc_socket
+        :param netname: Netname of a tinc VPN
+        :param rundir: Path where pid file and socket of tincd is located (default: /var/run)
+        :param reconn: If True, Control tries to reconnect to unix socket (default: False)
+        """
+        self.netname = netname
+        self.rundir = rundir
+        self.pid_file = self._pid_file()
+        self.tinc_socket = self._socket()
 
         self.reconn = reconn
         self.connection = None
         self.cookie = None
         self._parse_pid_file()
+
+    def _pid_file(self):
+        return "{rundir}/tinc.{netname}.pid".format(rundir=self.rundir,
+                                                    netname=self.netname)
+
+    def _socket(self):
+        return "{rundir}/tinc.{netname}.socket".format(rundir=self.rundir,
+                                                       netname=self.netname)
 
     def _parse_pid_file(self):
         """
@@ -77,7 +96,7 @@ class TincConn(object):
                 # errno 2: No such file or directory
                 # errno 13: Permission denied
                 # errno 32: Broken pipe
-                if c == self.reconn_tries - 1:
+                if c == n - 1:
                     raise e
             else:
                 break
@@ -115,14 +134,9 @@ class TincConn(object):
             raise NoConnection
 
         if not self._validate_request(request):
-            raise InvalidRequest
+            raise NotImplementedError('[{}] not implemented.'.format(request))
 
-        if request in self.available_requests:
-            req = self.available_requests[request]
-        else:
-            req = request
-
-        self.connection.send(req)
+        self.connection.send(request)
 
     def _get_answer(self):
         answer = []
@@ -137,7 +151,7 @@ class TincConn(object):
         return "".join(answer)
 
     def _validate_request(self, request):
-        return request in self.available_requests or\
+        return request in Request.AVAIL_REQ or\
                re.match("^0 \^.{64} 0\n$", request)
 
     def _sleep_time(self, count):
