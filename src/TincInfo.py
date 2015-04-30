@@ -10,6 +10,8 @@ class ConvertDatatypeDict(dict):
     The keys for which the corresponding value should be converted can be
     specified via the attributes self.decs and self.hexs.
 
+    The conversion must be done explicitly via convert_datatypes(self)
+
     self.decs: A list of keys for which the values are interpreted as
      *decimal* integer literals.
     self.hexs: A list of keys for which the values are interpreted as
@@ -21,22 +23,20 @@ class ConvertDatatypeDict(dict):
     decs = []
     hexs = []
 
-    def __setitem__(self, key, item):
-        if key in self.decs:
-            try:
-                setattr(self, key, int(item))
-            except ValueError:
-                setattr(self, key, -1)
-        elif key in self.hexs:
-            try:
-                setattr(self, key, int(item, 16))
-            except ValueError:
-                setattr(self, key, -1)
-        else:
-            setattr(self, key, item)
+    def convert_datatypes(self):
+        """
+        Converts datatypes for the keys specified in self.decs and self.hexs
+        """
+        self._convert2int(self.decs, 10)
+        self._convert2int(self.hexs, 16)
 
-    def __getitem__(self, item):
-        return self.__dict__[item]
+    def _convert2int(self, keys, base=10, err_val=-1):
+        for k in keys:
+            if self.get(k):
+                try:
+                    self[k] = int(self[k], base)
+                except ValueError:
+                    self[k] = err_val
 
 
 class TincNode(object):
@@ -277,6 +277,7 @@ class TincInfo(object):
         for k, v in zip(purpose, _tmp):
             t_obj[k] = v
 
+        t_obj.convert_datatypes()
         return t_obj
 
     # info
